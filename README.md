@@ -91,6 +91,9 @@ Remarks:
    `/var/www/example.com/html;` If it doesn't find the file or an
    `index` file per the line below the `root` configuration, it
    returns a `404`.
+   
+[nginxDOsetup]: https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-18-04 "Nginx setup for DO"
+[NginxHTTPS]: https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-18-04 "Nginx HTTPS setup"
 
 Locking Things Down
 -------------------
