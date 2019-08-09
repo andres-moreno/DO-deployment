@@ -293,57 +293,6 @@ DO has a page with more information on [working with services][SystemdServices]
 [SystemdServices]: https://www.digitalocean.com/community/tutorials/systemd-essentials-working-with-services-units-and-the-journal "Systemd Services"
 
 
-Serving NodeJS Applications in a DO Droplet
--------------------------------------------
-
-We need to install `node`, `pm2`, and set up `nginx` with a reverse
-proxy pointing to our `node` application. The detailed instructions
-can be found [here][DONodeApp].
-
-[DONodeApp]: https://www.digitalocean.com/community/tutorials/how-to-set-up-a-node-js-application-for-production-on-ubuntu-18-04 "NodeJS app on DO droplet"
-
-Install `node` with `nvm`
-------------------------
-
-The first step is to install `node` and `npm`. The best way to do this
-is with `nvm`. All the gory details for `nvm` can be found
-[here][nvm]. Look [here][nvmInstall] for clear installation
-instructions. We can then manage our node versions with `nvm`
-
-[nvm]: https://github.com/creationix/nvm/blob/master/README.md "NVM docs"
-[nvmInstall]: https://nodesource.com/blog/installing-node-js-tutorial-using-nvm-on-mac-os-x-and-ubuntu/ "Install Node with nvm"
-
-Install *pm2*
--------------
-
-Use `npm` to install PM2:
-
-`sudo npm install pm2@latest -g`
-
-Note that we might not need the `sudo` for `node` that was installed
-with `npm`. Annoying.
-
-We now can start our application with
-
-`pm2 start ./bin/www`
-
-This will cause the execution of the `nodeJS` app in the
-background. We can set up our droplet to run `pm2` at startup with
-
-`pm2 startup systemd`
-
-and we can *freeze* the list of jobs that `pm2` runs with
-
-`pm2 save`
-
-To remove `pm2` from startup, we type
-
-`pm2 unstartup systemd`
-
-DO has a page with more information on [working with services][SystemdServices]
-
-[SystemdServices]: https://www.digitalocean.com/community/tutorials/systemd-essentials-working-with-services-units-and-the-journal "Systemd Services"
-
 Node applications code deployment
 ---------------------------------
 
@@ -410,6 +359,48 @@ Supporting Automatic Restarting of Node Applications
 
 We want to have our Node applications automatically restarted on
 reboot and whenever we push a new version of our code to the
-server. We use `PM2` for this purpose. Incidentally, I really like
-`nvm` for managing Node. 
+server. As noted above, we use `PM2` for this purpose.
+
+To achieve our goals we only need to start the application with the
+right parameters: on the remote server, go to the appropriate
+directory and start the application with
+
+`pm2 start index.js --name notes --watch --ignore-watch="node_modules"`
+
+Here `index.js` is the entry point for the app, `notes` is the name I
+am using for it, the `--watch` parameter tells `pm2` to look for code
+changes and the last flag tells it to ignore the `node_modules`
+directory.
+
+This will result in the app being started by `pm2` everytime there is
+a change to the source code in the `git` repository on the remote
+machine or whenever the machine is rebooted.
+
+Setting up Nginx to Work with myapp
+-----------------------------------
+
+Now we need to setup a reverse proxy with Nginx which involves adding
+the code below to `/etc/nginx/sites-available/andresmoreno.me`
+
+```bash
+location /myapp {
+    proxy_pass http://localhost:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+}
+```
+
+Note that 3001 is an arbitrary port number. One might consider writing
+a NodeJS program to modify Nginx files programmatically: an option to
+consider is [nginx-conf][nginx-conf]. We also put the port number in
+an `.env` file so the script could look there to configure the port on
+Nginx.
+
+Finally, we need to reload the configuration file with `sudo systemctl
+reload nginx`
+
+[nginx-conf]: https://www.npmjs.com/package/nginx-conf "Nginx-Conf"
 
